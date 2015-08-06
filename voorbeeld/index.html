@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <META HTTP-EQUIV="REFRESH" CONTENT="300">
+    <meta http-equiv="content-type" content="text/html;charset=utf-8">
+    <title>Voorbeeldcode Realtime Verkeersdata</title>
+    <style>
+        #map{
+            position: absolute;
+            bottom: 0px;
+            left: 0px;
+            top: 0px;
+            right: 0px; 
+        }        
+
+        #info{
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px; 
+            height: 100px;
+            background: white;
+            font-family: Arial;
+        }
+        h1{
+            padding: 10px;
+            margin: 0px
+        }
+
+        dl {
+            margin: 0px;
+            padding: 0px;
+        }
+        dt {
+            float: left;
+            margin: 10px;
+            font-weight: bold;
+        }
+        dt:after {
+            content: ":";
+        }
+        dd {
+            float: left;
+            margin: 10px;
+        }
+    </style>
+    <script type="text/javascript" src="http://maps.google.com/maps/api/js?sensor=true"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+    <script type='text/javascript'> 
+    var data, features;
+    
+    function speedToColor(type, speed){
+        if(type == "H"){
+            //Snelweg
+            var speedColors = {0: "#D0D0D0", 1: "#BE0000", 30: "#FF0000", 50: "#FF9E00", 70: "#FFFF00", 90: "#AAFF00",120: "#00B22D"};
+        } else {
+            //Overige wegen
+            var speedColors = {0: "#D0D0D0", 1: "#BE0000", 10: "#FF0000", 20: "#FF9E00", 30: "#FFFF00", 40: "#AAFF00", 70: "#00B22D"};
+        }
+        var currentColor = "#D0D0D0";
+        for(var i in speedColors){
+            if(speed >= i) currentColor = speedColors[i];
+        }
+        return currentColor;
+    }
+    
+    function showFeature(i){
+        var html = "<H1>"+ features[i].properties.Name + "</H1><dl>";
+        html += "<dt>ID</dt> <dd>"+ features[i].properties.Id +"</dd>";
+        html += "<dt>Lengte</dt> <dd>"+ features[i].properties.Length +" meter</dd>";
+        html += "<dt>Snelheid</dt> <dd>"+ features[i].properties.Velocity +" km/u</dd>";
+        html += "<dt>Huidige reistijd</dt> <dd>"+ Math.floor(features[i].properties.Traveltime / 60) +":"+ ("0"+features[i].properties.Traveltime % 60).slice(-2) +"</dd></dl>";
+        $("#info").html(html);
+    }
+    
+    function load() {
+     var url = "http://tools.amsterdamopendata.nl/ndw/data/reistijdenAmsterdam.geojson";
+     var myLatlng = new google.maps.LatLng(52.36500, 4.90000);
+     zoom = 12;
+
+     var myOptions = {
+        zoom: zoom,
+        mapTypeId: google.maps.MapTypeId.TERRAIN
+     }
+     var map = new google.maps.Map(document.getElementById("map"), myOptions);        
+     map.setCenter(myLatlng,zoom);
+
+    $.getJSON(url, function( result ){  
+        data = result;
+        features = data.features;
+        for(i in features){
+            var f = features[i];
+            var color = speedToColor(f.properties.Type, f.properties.Velocity);
+            var points = f.geometry.coordinates;
+            var path = new Array();
+            
+            for(var j in points){
+                if(!isNaN(points[j][1])){
+                    path.push(new google.maps.LatLng(points[j][1], points[j][0]));
+                }
+            }
+            
+            if(f.properties.Velocity > 0){ var weight = 3; } else { var weight = 1;}
+            var line = new google.maps.Polyline({map: map, path: path, strokeColor: color, strokeOpacity: 1.0,strokeWeight: weight, title: f.properties.Name, localID: i});
+            google.maps.event.addListener(line, 'click', function(){ showFeature(this.localID) });
+        }
+     });  
+    }  
+  </script>
+  </head>
+  <body onLoad='load()'>
+    <div id='map'></div>
+    <div id='info'></div>
+  </body>
+</html>
