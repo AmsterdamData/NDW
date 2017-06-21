@@ -65,17 +65,26 @@
         return currentColor;
     }
     
-    function showFeature(i){
+    function showFeature(line){
+        var i = line.localID;
+        line.setOptions({strokeWeight: 6});
         var html = "<H1>"+ features[i].properties.Name + "</H1><dl>";
         html += "<dt>ID</dt> <dd>"+ features[i].properties.Id +"</dd>";
         html += "<dt>Lengte</dt> <dd>"+ features[i].properties.Length +" meter</dd>";
         html += "<dt>Snelheid</dt> <dd>"+ features[i].properties.Velocity +" km/u</dd>";
         html += "<dt>Huidige reistijd</dt> <dd>"+ Math.floor(features[i].properties.Traveltime / 60) +":"+ ("0"+features[i].properties.Traveltime % 60).slice(-2) +"</dd></dl>";
+        html += "<dt>Timestamp</dt> <dd>"+ features[i].properties.Timestamp +"</dd>";
         $("#info").html(html);
+        
+        for(j in features){
+            if(j != i){
+                features[j].line.setOptions({strokeWeight: features[j].line.originalWeight});
+            }
+        }
     }
     
     function load() {
-     var url = "http://tools.amsterdamopendata.nl/ndw/data/reistijdenAmsterdam.geojson";
+     var url = "http://web.redant.net/~amsterdam/ndw/data/reistijdenAmsterdam.geojson";
      var myLatlng = new google.maps.LatLng(52.36500, 4.90000);
      zoom = 12;
 
@@ -102,8 +111,8 @@
             }
             
             if(f.properties.Velocity > 0){ var weight = 3; } else { var weight = 1;}
-            var line = new google.maps.Polyline({map: map, path: path, strokeColor: color, strokeOpacity: 1.0,strokeWeight: weight, title: f.properties.Name, localID: i});
-            google.maps.event.addListener(line, 'click', function(){ showFeature(this.localID) });
+            f.line = new google.maps.Polyline({map: map, path: path, strokeColor: color, strokeOpacity: 1.0,strokeWeight: weight, title: f.properties.Name, localID: i, originalWeight: weight});
+            google.maps.event.addListener(f.line, 'click', function(){ showFeature(this) });
         }
      });  
     }  
